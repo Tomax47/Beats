@@ -19,7 +19,7 @@ fi
 cp -r packaging/. "$STAGE/"
 mkdir -p "$STAGE/usr/share/beats/ladspa"
 mkdir -p "$STAGE/usr/share/pixmaps"
-cp src/headset_mic_fixer.py src/beats_logo.py "$STAGE/usr/share/beats/"
+cp src/headset_mic_fixer.py src/beats_logo.py src/beats_theme.py "$STAGE/usr/share/beats/"
 mkdir -p "$STAGE/usr/share/doc/beats"
 cp LICENSE "$STAGE/usr/share/doc/beats/"
 cp "$VENDOR" "$STAGE/usr/share/beats/ladspa/"

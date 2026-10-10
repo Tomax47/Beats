@@ -1,9 +1,10 @@
 import math
 
-ACCENT_A = "#6d8dff"
-ACCENT_B = "#8a6dff"
-TILE = "#151922"
-TILE_LINE = "#2c3446"
+from beats_theme import DARK
+
+ACCENT = DARK["accent"]
+TILE = DARK["surface"]
+TILE_LINE = DARK["border"]
 
 BAR_WEIGHTS = (0.40, 0.68, 1.00, 0.55, 0.34)
 
@@ -29,16 +30,8 @@ def bar_rects(view, pad, max_h_ratio=0.58, base_ratio=0.78):
 def svg_app_icon(size=64):
     pad = size * 0.18
     rects = bar_rects(size, pad)
-    gid = "beatsGrad"
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">',
-        "  <defs>",
-        f'    <linearGradient id="{gid}" x1="12" y1="10" x2="52" y2="54" '
-        f'gradientUnits="userSpaceOnUse">',
-        f'      <stop stop-color="{ACCENT_A}"/>',
-        f'      <stop offset="1" stop-color="{ACCENT_B}"/>',
-        "    </linearGradient>",
-        "  </defs>",
         f'  <rect width="{size}" height="{size}" rx="{size * 0.25}" fill="{TILE}"/>',
         f'  <rect x="{size * 0.02}" y="{size * 0.02}" width="{size * 0.96}" '
         f'height="{size * 0.96}" rx="{size * 0.23}" fill="none" '
@@ -47,7 +40,7 @@ def svg_app_icon(size=64):
     for x, y, w, h, rx in rects:
         parts.append(
             f'  <rect x="{x:.3f}" y="{y:.3f}" width="{w:.3f}" height="{h:.3f}" '
-            f'rx="{rx:.3f}" fill="url(#{gid})"/>'
+            f'rx="{rx:.3f}" fill="{ACCENT}"/>'
         )
     parts.append("</svg>")
     parts.append("")

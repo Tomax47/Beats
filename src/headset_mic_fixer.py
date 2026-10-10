@@ -21,9 +21,11 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
+import beats_theme as theme  # noqa: E402
 from beats_logo import paint_bars  # noqa: E402
+from beats_theme import SIZE, SPACE  # noqa: E402
 
 APP = "Beats"
 APP_ID = "org.beats.Beats"
@@ -391,75 +393,6 @@ def restart_audio(after=None):
     threading.Thread(target=work, daemon=True).start()
 
 
-CSS = b"""
-@define-color bg #0e1014;
-@define-color panel #151922;
-@define-color card #181d27;
-@define-color line #252b38;
-@define-color text #e8eaf0;
-@define-color muted #8b93a5;
-@define-color accent #6d8dff;
-@define-color accent2 #8a6dff;
-
-window, .app { background: @bg; color: @text; }
-headerbar { background: @bg; border-bottom: 1px solid @line; box-shadow: none; color: @text; }
-headerbar .title { font-weight: 700; }
-label { color: @text; }
-.muted { color: @muted; }
-.h1 { font-size: 24px; font-weight: 700; }
-.h2 { font-size: 14px; font-weight: 700; }
-.small { font-size: 12px; }
-
-.sidebar { background: @panel; border-right: 1px solid @line; }
-.brand { font-weight: 800; font-size: 15px; }
-.nav { background: transparent; border: none; box-shadow: none; border-radius: 10px;
-       padding: 9px 12px; color: @muted; }
-.nav:hover { background: #1b2130; color: @text; }
-.nav:checked { background: #212a40; color: #ffffff; }
-
-.card { background: @card; border: 1px solid @line; border-radius: 16px; padding: 18px; }
-
-button { background: #222938; background-image: none; border: 1px solid #2c3446; box-shadow: none;
-         border-radius: 10px; padding: 8px 14px; color: @text; text-shadow: none; }
-button:hover { background: #2a3347; }
-button:disabled { opacity: 0.45; }
-button.primary { background-image: linear-gradient(135deg, @accent, @accent2); border: none;
-                 color: #ffffff; font-weight: 700; }
-button.primary:hover { background-image: linear-gradient(135deg, #839eff, #9c82ff); }
-button.ghost { background: transparent; border: 1px solid #2c3446; }
-
-.mode { background: #1b2130; border: 1px solid #2c3446; border-radius: 14px; padding: 14px; }
-.mode:hover { background: #212a3b; }
-.mode:checked { background: #22294a; border: 1px solid @accent; }
-
-combobox button, combobox button.combo { background: #1d2331; border: 1px solid #2c3446;
-                                          border-radius: 10px; padding: 6px 10px; }
-combobox arrow { color: @muted; }
-menu, .popup, popover { background: #1b2130; color: @text; border: 1px solid #2c3446; border-radius: 10px; }
-menuitem:hover, modelbutton:hover { background: #2a3347; }
-
-scale trough { background: #262d3d; border-radius: 6px; min-height: 6px; border: none; }
-scale highlight { background-image: linear-gradient(90deg, @accent, @accent2); border-radius: 6px; border: none; }
-scale slider { background: #ffffff; border: none; border-radius: 50%; min-width: 16px; min-height: 16px;
-               box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
-
-switch { background: #2a3142; border: none; border-radius: 14px; }
-switch slider { background: #ffffff; border-radius: 50%; border: none; }
-switch:checked { background-image: linear-gradient(135deg, @accent, @accent2); }
-
-levelbar trough { background: #262d3d; border: none; border-radius: 6px; min-height: 12px; }
-levelbar block.empty { background: transparent; border: none; }
-levelbar block.filled { background: #4cd38a; border-radius: 6px; }
-levelbar block.filled.high { background: #f0b429; }
-levelbar block.filled.full { background: #ef5350; }
-
-.status { background: @panel; border-top: 1px solid @line; padding: 9px 16px; color: @muted; }
-textview, textview text { background: #10131a; color: #cfd6e6; font-family: monospace; }
-scrolledwindow { background: transparent; }
-dialog, messagedialog { background: @card; }
-"""
-
-
 _POINTER = {}
 
 
@@ -604,12 +537,12 @@ class VectorIcon(Gtk.DrawingArea):
             if isinstance(w, Gtk.ToggleButton):
                 flags = w.get_state_flags()
                 if w.get_active():
-                    return (1.0, 1.0, 1.0)
+                    return theme.rgb("accent")
                 if flags & Gtk.StateFlags.PRELIGHT:
-                    return (232 / 255, 234 / 255, 240 / 255)
-                return (139 / 255, 147 / 255, 165 / 255)
+                    return theme.rgb("text")
+                return theme.rgb("text_muted")
             w = w.get_parent()
-        return (232 / 255, 234 / 255, 240 / 255)
+        return theme.rgb("text")
 
     def _on_draw(self, _w, cr):
         alloc = self.get_allocation()
@@ -631,16 +564,13 @@ def render_app_icon(size=64):
     s = size / 64.0
     cr.scale(s, s)
     _rounded_rect(cr, 0, 0, 64, 64, 16)
-    cr.set_source_rgb(21 / 255, 25 / 255, 34 / 255)
+    cr.set_source_rgb(*theme.rgb("surface"))
     cr.fill()
     _rounded_rect(cr, 1.25, 1.25, 61.5, 61.5, 14.75)
-    cr.set_source_rgb(44 / 255, 52 / 255, 70 / 255)
+    cr.set_source_rgb(*theme.rgb("border"))
     cr.set_line_width(1.5)
     cr.stroke()
-    lg = cairo.LinearGradient(14, 8, 50, 56)
-    lg.add_color_stop_rgb(0, 109 / 255, 141 / 255, 1)
-    lg.add_color_stop_rgb(1, 138 / 255, 109 / 255, 1)
-    cr.set_source(lg)
+    cr.set_source_rgb(*theme.rgb("accent"))
     paint_bars(cr, view=64, pad=11.5)
     return Gdk.pixbuf_get_from_surface(surface, 0, 0, size, size)
 
@@ -659,6 +589,88 @@ def mkbtn(text, cb, kind=None):
         b.get_style_context().add_class(kind)
     b.connect("clicked", cb)
     return make_clickable(b)
+
+
+def mkcombo():
+    combo = make_clickable(Gtk.ComboBoxText())
+    combo.set_size_request(SIZE["combo"], -1)
+    for cell in combo.get_cells():
+        cell.set_property("ellipsize", Pango.EllipsizeMode.END)
+        cell.set_property("max-width-chars", 32)
+    return combo
+
+
+def value_slider(lo, hi, fmt="{:.0f}%"):
+    sc = make_clickable(Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, lo, hi, 1))
+    sc.set_draw_value(False)
+    sc.set_size_request(SIZE["slider"], -1)
+    val = lbl("", "secondary num", wrap=False, xalign=1.0)
+    val.set_size_request(40, -1)
+    sc.connect("value-changed", lambda s: val.set_text(fmt.format(s.get_value())))
+    box = Gtk.Box(spacing=SPACE["sm"] + SPACE["xs"])
+    box.pack_start(sc, False, False, 0)
+    box.pack_start(val, False, False, 0)
+    return box, sc, val
+
+
+class Column(Gtk.Box):
+    def __init__(self, width, **kw):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, **kw)
+        self._width = width
+        self.set_halign(Gtk.Align.START)
+
+    def do_get_preferred_width(self):
+        lo, _nat = Gtk.Box.do_get_preferred_width(self)
+        return lo, max(lo, self._width)
+
+
+class Section(Gtk.Box):
+    def __init__(self, title=None, note=None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.set_margin_top(SPACE["section"])
+        if title:
+            head = lbl(title.upper(), "section-label", wrap=False)
+            head.set_margin_bottom(SPACE["sm"])
+            self.pack_start(head, False, False, 0)
+        if note:
+            self.note = lbl(note, "secondary")
+            self.note.set_margin_bottom(SPACE["sm"])
+            self.pack_start(self.note, False, False, 0)
+        self.rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.pack_start(self.rows, False, False, 0)
+
+    def add_row(self, label=None, control=None, desc=None):
+        r = Gtk.Box(spacing=SPACE["md"])
+        r.get_style_context().add_class("row")
+        if label is not None:
+            t = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            t.set_valign(Gtk.Align.CENTER)
+            t.pack_start(lbl(label), False, False, 0)
+            if desc:
+                t.pack_start(lbl(desc, "secondary"), False, False, 0)
+            r.pack_start(t, True, True, 0)
+        if control is not None:
+            control.set_valign(Gtk.Align.CENTER)
+            if label is None:
+                r.pack_start(control, True, True, 0)
+            else:
+                r.pack_end(control, False, False, 0)
+        self.rows.pack_start(r, False, False, 0)
+        return r
+
+    def add_switch(self, label, desc=None, active=False):
+        sw = make_clickable(Gtk.Switch())
+        sw.set_active(active)
+        self.add_row(label, sw, desc)
+        return sw
+
+    def add_actions(self, *widgets):
+        r = Gtk.Box(spacing=SPACE["sm"])
+        r.set_margin_top(SPACE["md"] - SPACE["xs"])
+        for w in widgets:
+            r.pack_start(w, False, False, 0)
+        self.pack_start(r, False, False, 0)
+        return r
 
 
 class Meter:
@@ -726,7 +738,7 @@ class BeatsWindow(Gtk.ApplicationWindow):
 
         Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
         prov = Gtk.CssProvider()
-        prov.load_from_data(CSS)
+        prov.load_from_data(theme.stylesheet().encode())
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
@@ -736,20 +748,23 @@ class BeatsWindow(Gtk.ApplicationWindow):
         self.set_titlebar(hb)
 
         root = Gtk.Box()
+        root.get_style_context().add_class("app")
         self.add(root)
 
-        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         side.get_style_context().add_class("sidebar")
-        side.set_size_request(220, -1)
-        side.set_border_width(12)
-        brand_row = Gtk.Box(spacing=8)
-        brand_row.set_margin_bottom(14)
-        brand_row.set_margin_top(6)
-        brand_row.pack_start(VectorIcon("logo", 22, color=(109 / 255, 141 / 255, 1.0)), False, False, 0)
+        side.set_size_request(SIZE["sidebar"], -1)
+        side.set_margin_start(SPACE["md"] - SPACE["xs"])
+        side.set_margin_end(SPACE["xs"])
+        side.set_margin_top(SPACE["md"])
+        brand_row = Gtk.Box(spacing=10)
+        brand_row.set_margin_start(10)
+        brand_row.set_margin_bottom(SPACE["md"])
+        brand_row.pack_start(VectorIcon("logo", SIZE["icon"], color=theme.rgb("text")), False, False, 0)
         brand_row.pack_start(lbl("Beats", "brand", wrap=False), False, False, 0)
         side.pack_start(brand_row, False, False, 0)
         self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
         first = None
         for key, title, icon in PAGES:
             rb = Gtk.RadioButton.new_from_widget(first) if first is not None else Gtk.RadioButton()
@@ -758,7 +773,7 @@ class BeatsWindow(Gtk.ApplicationWindow):
             rb.set_mode(False)
             rb.get_style_context().add_class("nav")
             row = Gtk.Box(spacing=10)
-            glyph = VectorIcon(icon, 18)
+            glyph = VectorIcon(icon, SIZE["icon"])
             row.pack_start(glyph, False, False, 0)
             row.pack_start(lbl(title, wrap=False), False, False, 0)
             rb.add(row)
@@ -773,8 +788,12 @@ class BeatsWindow(Gtk.ApplicationWindow):
         col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         root.pack_start(col, True, True, 0)
         col.pack_start(self.stack, True, True, 0)
-        self.status = lbl("Ready.", "status small")
+        self.status = lbl("Ready.", "statusline")
         self.status.set_selectable(True)
+        self.status.set_margin_start(SPACE["page_x"])
+        self.status.set_margin_end(SPACE["page_x"])
+        self.status.set_margin_top(SPACE["sm"])
+        self.status.set_margin_bottom(SPACE["md"] - SPACE["xs"])
         col.pack_start(self.status, False, False, 0)
 
         self.add_page("mic", self.page_mic())
@@ -796,44 +815,23 @@ class BeatsWindow(Gtk.ApplicationWindow):
         sw.add(content)
         self.stack.add_named(sw, key)
 
-    def page(self, title, subtitle):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        box.set_border_width(28)
-        box.pack_start(lbl(title, "h1"), False, False, 0)
-        sub = lbl(subtitle, "muted")
-        sub.set_margin_bottom(4)
-        box.pack_start(sub, False, False, 0)
+    def page(self, title, subtitle=None):
+        box = Column(SIZE["content"])
+        box.set_margin_start(SPACE["page_x"])
+        box.set_margin_end(SPACE["page_x"])
+        box.set_margin_top(SPACE["page_y"])
+        box.set_margin_bottom(SPACE["page_y"])
+        box.pack_start(lbl(title, "page-title"), False, False, 0)
+        if subtitle:
+            sub = lbl(subtitle, "secondary")
+            sub.set_margin_top(SPACE["xs"])
+            box.pack_start(sub, False, False, 0)
         return box
 
-    def card(self, title=None, subtitle=None):
-        c = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        c.get_style_context().add_class("card")
-        if title:
-            c.pack_start(lbl(title, "h2"), False, False, 0)
-        if subtitle:
-            c.pack_start(lbl(subtitle, "muted small"), False, False, 0)
-        return c
-
-    def field(self, label, widget):
-        r = Gtk.Box(spacing=12)
-        l = lbl(label, "muted", wrap=False)
-        l.set_size_request(120, -1)
-        r.pack_start(l, False, False, 0)
-        r.pack_start(widget, True, True, 0)
-        return r
-
-    def switch_row(self, title, subtitle, active=False):
-        r = Gtk.Box(spacing=12)
-        t = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        t.pack_start(lbl(title), False, False, 0)
-        t.pack_start(lbl(subtitle, "muted small"), False, False, 0)
-        r.pack_start(t, True, True, 0)
-        sw = Gtk.Switch()
-        sw.set_active(active)
-        sw.set_valign(Gtk.Align.CENTER)
-        make_clickable(sw)
-        r.pack_end(sw, False, False, 0)
-        return r, sw
+    def section(self, pg, title=None, note=None, expand=False):
+        s = Section(title, note)
+        pg.pack_start(s, expand, expand, 0)
+        return s
 
     def say(self, msg):
         self.status.set_text(msg)
@@ -841,6 +839,7 @@ class BeatsWindow(Gtk.ApplicationWindow):
     def info(self, msg, kind=Gtk.MessageType.INFO):
         d = Gtk.MessageDialog(transient_for=self, message_type=kind,
                               buttons=Gtk.ButtonsType.OK, text=msg)
+        d.get_style_context().add_class("app")
         apply_pointer_cursors(d)
         d.run()
         d.destroy()
@@ -879,54 +878,45 @@ class BeatsWindow(Gtk.ApplicationWindow):
         return False
 
     def page_mic(self):
-        pg = self.page("Microphone", "Pick your mic, check it live, and fix the basics.")
+        pg = self.page("Microphone")
 
-        c = self.card("Input")
-        self.src_combo = make_clickable(Gtk.ComboBoxText())
+        s = self.section(pg, "Input")
+        self.src_combo = mkcombo()
         self.src_combo.connect("changed", self.on_src_changed)
-        c.pack_start(self.field("Device", self.src_combo), False, False, 0)
-        self.port_combo = make_clickable(Gtk.ComboBoxText())
+        s.add_row("Device", self.src_combo)
+        self.port_combo = mkcombo()
         self.port_combo.connect("changed", self.on_port_changed)
-        c.pack_start(self.field("Port", self.port_combo), False, False, 0)
-        self.vol = make_clickable(Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 150, 1))
-        self.vol.set_draw_value(False)
+        s.add_row("Port", self.port_combo)
+        vr, self.vol, self.vol_label = value_slider(0, 150)
         self.vol.connect("value-changed", self.on_vol)
-        self.vol_label = lbl("0%", "muted", wrap=False)
-        self.vol_label.set_size_request(48, -1)
-        vr = Gtk.Box(spacing=12)
-        vr.pack_start(self.vol, True, True, 0)
-        vr.pack_start(self.vol_label, False, False, 0)
-        c.pack_start(self.field("Volume", vr), False, False, 0)
-        mr, self.mute = self.switch_row("Mute microphone", "A muted mic records pure silence.")
+        s.add_row("Volume", vr)
+        self.mute = s.add_switch("Mute")
         self.mute.connect("notify::active", self.on_mute)
-        c.pack_start(mr, False, False, 0)
-        pg.pack_start(c, False, False, 0)
 
-        c2 = self.card("Live level", "Speak - the bar should move. If it stays empty, the mic isn't "
-                                     "delivering sound (check mute, port and profile).")
+        s2 = self.section(pg, "Live level", "If the bar stays still while you speak, check mute, "
+                                            "port and the card profile.")
         self.level = Gtk.LevelBar()
         self.level.set_min_value(0)
         self.level.set_max_value(1)
         self.level.add_offset_value("low", 0.5)
         self.level.add_offset_value("high", 0.8)
         self.level.add_offset_value("full", 0.97)
-        c2.pack_start(self.level, False, False, 4)
-        self.peak_lbl = lbl("-∞ dB", "muted small")
-        c2.pack_start(self.peak_lbl, False, False, 0)
-        br = Gtk.Box(spacing=8)
-        br.pack_start(mkbtn("Record & play back (5 s)", lambda _: self.test(False), "primary"), False, False, 0)
-        br.pack_start(mkbtn("Test with active filter", lambda _: self.test(True)), False, False, 0)
-        c2.pack_start(br, False, False, 4)
-        pg.pack_start(c2, False, False, 0)
+        self.level.add_offset_value("clip", 1.0)
+        self.peak_lbl = lbl("-∞ dB", "secondary num", wrap=False, xalign=1.0)
+        self.peak_lbl.set_size_request(56, -1)
+        meter = Gtk.Box(spacing=SPACE["md"])
+        self.level.set_valign(Gtk.Align.CENTER)
+        meter.pack_start(self.level, True, True, 0)
+        meter.pack_start(self.peak_lbl, False, False, 0)
+        s2.add_row(control=meter)
+        s2.add_actions(mkbtn("Record & play back (5 s)", lambda _: self.test(False)),
+                       mkbtn("Test with active filter", lambda _: self.test(True)))
 
-        c3 = self.card("Quick fixes")
-        c3.pack_start(lbl("Turns on ALSA capture switches and raises a capture volume stuck near zero.",
-                          "muted small"), False, False, 0)
-        r = Gtk.Box(spacing=8)
-        r.pack_start(mkbtn("Unmute / enable capture", self.on_enable_capture), False, False, 0)
-        r.pack_start(mkbtn("Refresh devices", lambda _: self.refresh(), "ghost"), False, False, 0)
-        c3.pack_start(r, False, False, 0)
-        pg.pack_start(c3, False, False, 0)
+        s3 = self.section(pg, "Quick fixes", "Unmute turns on ALSA capture switches and raises a "
+                                             "capture volume stuck near zero.")
+        a = s3.add_actions(mkbtn("Unmute / enable capture", self.on_enable_capture, "tertiary"),
+                           mkbtn("Refresh devices", lambda _: self.refresh(), "tertiary"))
+        a.set_margin_top(0)
         return pg
 
     def on_level(self, peak):
@@ -1062,30 +1052,28 @@ class BeatsWindow(Gtk.ApplicationWindow):
         threading.Thread(target=work, daemon=True).start()
 
     def page_filter(self):
-        pg = self.page("Noise filter", "Creates a cleaned virtual microphone - pick it in your apps "
-                                       "(it's also set as the default input).")
-        c = self.card("Mode")
-        row = Gtk.Box(spacing=12, homogeneous=True)
+        pg = self.page("Noise filter", "Adds a cleaned virtual microphone, “Beats (cleaned)”, "
+                                       "and makes it the default input.")
+        s = self.section(pg, "Mode")
         self.modes = {}
-        defs = [("off", "Off", "No processing."),
-                ("light", "Light", "Cuts rumble (<90 Hz) and hiss (>8 kHz)."),
-                ("strong", "Strong", "WebRTC noise suppression + auto gain."),
-                ("max", "Maximum", "RNNoise AI denoiser. Set up automatically.")]
+        defs = [("off", "Off", None),
+                ("light", "Light", "Cuts rumble below 90 Hz and hiss above 8 kHz."),
+                ("strong", "Strong", "WebRTC noise suppression with automatic gain."),
+                ("max", "Maximum", "RNNoise neural denoiser.")]
         first = None
         for key, name, desc in defs:
             rb = Gtk.RadioButton.new_from_widget(first) if first is not None else Gtk.RadioButton()
             if first is None:
                 first = rb
-            rb.set_mode(False)
-            rb.get_style_context().add_class("mode")
-            inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-            inner.pack_start(lbl(name, "h2"), False, False, 0)
-            inner.pack_start(lbl(desc, "muted small"), False, False, 0)
+            rb.get_style_context().add_class("choice")
+            inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            inner.pack_start(lbl(name), False, False, 0)
+            if desc:
+                inner.pack_start(lbl(desc, "secondary"), False, False, 0)
             rb.add(inner)
             make_clickable(rb)
             self.modes[key] = rb
-            row.pack_start(rb, True, True, 0)
-        c.pack_start(row, False, False, 0)
+            s.rows.pack_start(rb, False, False, 0)
 
         cur = "off"
         if os.path.exists(PW_CONF):
@@ -1093,11 +1081,14 @@ class BeatsWindow(Gtk.ApplicationWindow):
             cur = "strong" if "aec-webrtc" in txt else "max" if "rnnoise" in txt else "light"
         self.modes[cur].set_active(True)
 
-        self.rn_note = lbl("", "muted small")
-        c.pack_start(self.rn_note, False, False, 0)
-        pg.pack_start(c, False, False, 0)
-        pg.pack_start(mkbtn("Apply filter  (restarts audio for a few seconds)", self.on_apply_filter, "primary"),
-                      False, False, 0)
+        self.rn_note = lbl("", "secondary")
+        self.rn_note.set_margin_top(SPACE["sm"])
+        s.pack_start(self.rn_note, False, False, 0)
+        restart = lbl("Restarts audio for a few seconds.", "secondary", wrap=False)
+        restart.set_margin_start(SPACE["sm"])
+        s.add_actions(mkbtn("Apply filter", self.on_apply_filter, "primary"),
+                      mkbtn("Test with active filter", lambda _: self.test(True)),
+                      restart)
         self.update_rnnoise_state()
         return pg
 
@@ -1175,40 +1166,33 @@ class BeatsWindow(Gtk.ApplicationWindow):
         restart_audio(verify)
 
     def page_devices(self):
-        pg = self.page("Devices & Bluetooth", "Fix missing or poor-quality microphones at the card level.")
+        pg = self.page("Devices & Bluetooth")
 
-        c = self.card("Sound card profile",
-                      "If your headset mic is missing, the card may be in an output-only profile. "
-                      "Choose one with input (e.g. 'Duplex' or 'Headset').")
-        self.card_combo = make_clickable(Gtk.ComboBoxText())
+        s = self.section(pg, "Sound card profile",
+                         "A missing headset mic usually means an output-only profile. "
+                         "Pick one with input, such as Duplex or Headset.")
+        self.card_combo = mkcombo()
         self.card_combo.connect("changed", self.on_card_changed)
-        c.pack_start(self.field("Card", self.card_combo), False, False, 0)
-        self.prof_combo = make_clickable(Gtk.ComboBoxText())
-        c.pack_start(self.field("Profile", self.prof_combo), False, False, 0)
-        r = Gtk.Box(spacing=8)
-        r.pack_start(mkbtn("Switch profile", self.on_set_profile, "primary"), False, False, 0)
-        r.pack_start(mkbtn("Auto-pick one with microphone", self.on_auto_profile), False, False, 0)
-        c.pack_start(r, False, False, 0)
-        pg.pack_start(c, False, False, 0)
+        s.add_row("Card", self.card_combo)
+        self.prof_combo = mkcombo()
+        s.add_row("Profile", self.prof_combo)
+        s.add_actions(mkbtn("Switch profile", self.on_set_profile),
+                      mkbtn("Auto-pick one with microphone", self.on_auto_profile, "tertiary"))
 
         txt = open(WP_CONF).read() if os.path.exists(WP_CONF) else ""
-        c2 = self.card("Bluetooth & power",
-                       "Bluetooth mics are noisy in call mode (HFP/HSP). These settings improve it.")
-        r1, self.c_msbc = self.switch_row("Wideband voice (mSBC)",
-                                          "16 kHz call audio instead of 8 kHz, plus SBC-XQ and hardware volume.",
-                                          "enable-msbc" in txt or not txt)
-        r2, self.c_auto = self.switch_row("Don't auto-switch to call mode",
-                                          "Keeps headphones in high-quality music mode.", "autoswitch" in txt)
-        r3, self.c_susp = self.switch_row("Keep audio devices awake",
-                                          "Stops clicks/pops when the mic starts. Tiny power cost.",
-                                          "suspend-timeout" in txt)
-        for r_ in (r1, r2, r3):
-            c2.pack_start(r_, False, False, 2)
-        br = Gtk.Box(spacing=8)
-        br.pack_start(mkbtn("Apply settings", lambda _: self.apply_wp(), "primary"), False, False, 0)
-        br.pack_start(mkbtn("Best quality: keep A2DP, use another mic", self.on_keep_a2dp), False, False, 0)
-        c2.pack_start(br, False, False, 4)
-        pg.pack_start(c2, False, False, 0)
+        s2 = self.section(pg, "Bluetooth & power",
+                          "Bluetooth mics sound poor in call mode (HFP/HSP).")
+        self.c_msbc = s2.add_switch("Wideband voice (mSBC)",
+                                    "16 kHz call audio instead of 8 kHz. Also enables SBC-XQ "
+                                    "and hardware volume.",
+                                    "enable-msbc" in txt or not txt)
+        self.c_auto = s2.add_switch("Don't auto-switch to call mode",
+                                    "Keeps headphones in music quality.", "autoswitch" in txt)
+        self.c_susp = s2.add_switch("Keep audio devices awake",
+                                    "Stops pops when the mic starts. Slight power cost.",
+                                    "suspend-timeout" in txt)
+        s2.add_actions(mkbtn("Apply settings", lambda _: self.apply_wp(), "primary"),
+                       mkbtn("Best quality: keep A2DP, use another mic", self.on_keep_a2dp))
         return pg
 
     def refresh_cards(self):
@@ -1298,31 +1282,27 @@ class BeatsWindow(Gtk.ApplicationWindow):
         self.apply_wp(after)
 
     def page_wired(self):
-        pg = self.page("Wired & power", "Hiss on a wired headset, or clicks and pops.")
+        pg = self.page("Wired & power")
         controls = boost_controls()
-        c = self.card("Hardware Mic Boost",
-                      "Boost adds up to +30 dB before the computer sees the signal - and amplifies hiss. "
-                      "Lower it if your recording is noisy.")
+        s = self.section(pg, "Hardware Mic Boost",
+                         "Adds up to +30 dB before the signal reaches the computer, and amplifies "
+                         "hiss with it. Lower it if recordings are noisy.")
         if controls:
             for card, name, idx, pct in controls:
-                sc = make_clickable(Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1))
+                box, sc, val = value_slider(0, 100)
                 sc.set_value(pct)
-                sc.set_draw_value(False)
+                val.set_text(f"{pct}%")
                 sc.connect("value-changed", self.on_boost, card, name, idx)
-                c.pack_start(self.field(f"{name} (card {card})", sc), False, False, 0)
+                s.add_row(name, box, f"Card {card}")
         else:
-            c.pack_start(lbl("No Mic Boost control found on this hardware.",
-                             "muted"), False, False, 0)
-        pg.pack_start(c, False, False, 0)
+            s.add_row(control=lbl("No Mic Boost control on this hardware.", "secondary"))
 
-        c2 = self.card("Audio power saving",
-                       "Intel HDA chips sleep when idle and cause a pop or buzz when waking. "
-                       "Disabling it costs a tiny bit of battery. Asks for your admin password.")
-        r = Gtk.Box(spacing=8)
-        r.pack_start(mkbtn("Disable power saving", lambda _: self.power_save(True), "primary"), False, False, 0)
-        r.pack_start(mkbtn("Restore default", lambda _: self.power_save(False), "ghost"), False, False, 0)
-        c2.pack_start(r, False, False, 0)
-        pg.pack_start(c2, False, False, 0)
+        s2 = self.section(pg, "Audio power saving",
+                          "Intel HDA chips sleep when idle and pop or buzz on waking. Disabling it "
+                          "costs a little battery and asks for your admin password.")
+        a = s2.add_actions(mkbtn("Disable power saving", lambda _: self.power_save(True), "primary"),
+                           mkbtn("Restore default", lambda _: self.power_save(False), "tertiary"))
+        a.set_margin_top(SPACE["xs"])
         return pg
 
     def on_boost(self, scale, card, name, idx):
@@ -1341,20 +1321,18 @@ class BeatsWindow(Gtk.ApplicationWindow):
                   else "Power saving restored.") if rc == 0 else f"Cancelled/failed: {err.strip()}")
 
     def page_diag(self):
-        pg = self.page("Diagnostics", "A snapshot of your audio setup - paste it when asking for help.")
-        c = self.card()
+        pg = self.page("Diagnostics", "A snapshot of your audio setup to paste into a bug report.")
+        s = self.section(pg, "Output", expand=True)
+        block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        block.get_style_context().add_class("codeblock")
         self.diag_view = Gtk.TextView(editable=False, monospace=True)
-        self.diag_view.set_left_margin(10)
-        self.diag_view.set_top_margin(10)
         sw = Gtk.ScrolledWindow()
-        sw.set_min_content_height(420)
+        sw.set_min_content_height(400)
         sw.add(self.diag_view)
-        c.pack_start(sw, True, True, 0)
-        r = Gtk.Box(spacing=8)
-        r.pack_start(mkbtn("Run diagnostics", self.on_diag, "primary"), False, False, 0)
-        r.pack_start(mkbtn("Copy to clipboard", self.on_copy, "ghost"), False, False, 0)
-        c.pack_start(r, False, False, 0)
-        pg.pack_start(c, True, True, 0)
+        block.pack_start(sw, True, True, 0)
+        s.pack_start(block, True, True, 0)
+        s.add_actions(mkbtn("Run diagnostics", self.on_diag, "primary"),
+                      mkbtn("Copy to clipboard", self.on_copy, "tertiary"))
         return pg
 
     def collect_diag(self):
