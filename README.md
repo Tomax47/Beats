@@ -79,6 +79,7 @@ Regenerate the launcher SVG after touching the mark:
 ## Layout
 
 - `src/headset_mic_fixer.py` — the window
+- `src/beats_theme.py` — design tokens and the GTK stylesheet built from them
 - `src/beats_logo.py` — vector mark (bars + SVG)
 - `tools/gen_logo.py` — writes the launcher SVG
 - `packaging/` — Debian skeleton

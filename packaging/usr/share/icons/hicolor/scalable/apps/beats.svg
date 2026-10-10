@@ -1,15 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="beatsGrad" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6d8dff"/>
-      <stop offset="1" stop-color="#8a6dff"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16.0" fill="#151922"/>
-  <rect x="1.28" y="1.28" width="61.44" height="61.44" rx="14.72" fill="none" stroke="#2c3446" stroke-width="1.472"/>
-  <rect x="11.520" y="35.072" width="5.898" height="14.848" rx="2.949" fill="url(#beatsGrad)"/>
-  <rect x="20.285" y="24.678" width="5.898" height="25.242" rx="2.949" fill="url(#beatsGrad)"/>
-  <rect x="29.051" y="12.800" width="5.898" height="37.120" rx="2.949" fill="url(#beatsGrad)"/>
-  <rect x="37.816" y="29.504" width="5.898" height="20.416" rx="2.949" fill="url(#beatsGrad)"/>
-  <rect x="46.582" y="37.299" width="5.898" height="12.621" rx="2.949" fill="url(#beatsGrad)"/>
+  <rect width="64" height="64" rx="16.0" fill="#1B1B1A"/>
+  <rect x="1.28" y="1.28" width="61.44" height="61.44" rx="14.72" fill="none" stroke="#2B2B28" stroke-width="1.472"/>
+  <rect x="11.520" y="35.072" width="5.898" height="14.848" rx="2.949" fill="#7FA896"/>
+  <rect x="20.285" y="24.678" width="5.898" height="25.242" rx="2.949" fill="#7FA896"/>
+  <rect x="29.051" y="12.800" width="5.898" height="37.120" rx="2.949" fill="#7FA896"/>
+  <rect x="37.816" y="29.504" width="5.898" height="20.416" rx="2.949" fill="#7FA896"/>
+  <rect x="46.582" y="37.299" width="5.898" height="12.621" rx="2.949" fill="#7FA896"/>
 </svg>
