@@ -9,6 +9,10 @@ headset or earbud microphone usable. It lives in your applications menu,
 opens as a normal window, and does not ask you to install extra plugins
 before the interesting parts work.
 
+<p align="center">
+  <img src="docs/screenshot.png" width="760" alt="Beats Microphone page: device and port pickers, volume, mute, live level meter, and quick fixes">
+</p>
+
 The mark above is not a stock icon. `src/beats_logo.py` draws five bars
 whose heights are a downbeat — a pulse — and writes the SVG used for the
 launcher, the window icon, and the sidebar.
@@ -36,6 +40,11 @@ The Strong filter is WebRTC (already on Debian). Maximum is RNNoise; the
 plugin is bundled and set up when the package is installed. If a filter
 fails to load, Beats removes it and puts your audio back the way it was.
 
+The buttons at the bottom of the sidebar switch between light, dark, and
+following the desktop's theme; the choice is remembered. The button next to
+close in the title bar toggles fullscreen (also F11; Esc leaves it), and the
+title bar stays up while fullscreen.
+
 ## Install (as a user)
 
 You want the `.deb`, not a Python venv.
@@ -61,6 +70,7 @@ To undo what Beats wrote on disk:
 - `~/.config/wireplumber/wireplumber.conf.d/51-headset-mic-fixer.conf`
 - `~/.config/pipewire/pipewire.conf.d/51-headset-mic-fixer.conf`
 - `/etc/modprobe.d/headset-mic-fixer.conf` (power-save; written with pkexec)
+- `~/.config/beats/settings.json` (theme choice)
 
 Then: `systemctl --user restart pipewire pipewire-pulse wireplumber`
 

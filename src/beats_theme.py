@@ -26,7 +26,13 @@ LIGHT = {
     "danger": "#A4503F",
 }
 
+PALETTES = {"dark": DARK, "light": LIGHT}
 PALETTE = DARK
+
+
+def use(name):
+    global PALETTE
+    PALETTE = PALETTES[name]
 
 FONT = '"Inter", "Cantarell", system-ui, sans-serif'
 MONO = '"JetBrains Mono", "DejaVu Sans Mono", monospace'
@@ -95,6 +101,12 @@ headerbar, headerbar:backdrop {{
 }}
 headerbar .title {{ {t["body"]} font-weight: 500; }}
 headerbar:backdrop .title {{ color: @text_muted; }}
+headerbar button.header-icon {{
+  min-width: 28px; min-height: 28px; padding: 0; border: none; border-radius: {r_ctl}px;
+  background-color: transparent; background-image: none; box-shadow: none; transition: all {MOTION};
+}}
+headerbar button.header-icon:hover {{ background-color: @surface_hover; }}
+headerbar button.header-icon:active {{ background-color: @border; }}
 
 .app scrolledwindow, .app viewport {{ background-color: transparent; border: none; }}
 .app scrollbar {{ background-color: transparent; border: none; }}
@@ -115,6 +127,7 @@ headerbar:backdrop .title {{ color: @text_muted; }}
 }}
 .app button.nav:hover {{ background-color: @surface; color: @text; }}
 .app button.nav:checked {{ background-color: @surface_hover; color: @accent; }}
+.app button.nav.icon {{ min-width: {SIZE["nav"]}px; padding: 0; }}
 
 .row {{ min-height: {SIZE["row"] - 12}px; padding: 6px 0; border-top: 1px solid @border; }}
 .row:first-child {{ border-top: none; }}

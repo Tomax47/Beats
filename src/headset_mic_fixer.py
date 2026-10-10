@@ -32,6 +32,7 @@ APP_ID = "org.beats.Beats"
 CFG = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 WP_CONF = f"{CFG}/wireplumber/wireplumber.conf.d/51-headset-mic-fixer.conf"
 PW_CONF = f"{CFG}/pipewire/pipewire.conf.d/51-headset-mic-fixer.conf"
+PREFS = f"{CFG}/beats/settings.json"
 OUR_SRC = "headset_mic_fixer_source"
 MODPROBE = "/etc/modprobe.d/headset-mic-fixer.conf"
 
@@ -393,6 +394,40 @@ def restart_audio(after=None):
     threading.Thread(target=work, daemon=True).start()
 
 
+def load_prefs():
+    try:
+        with open(PREFS) as f:
+            prefs = json.load(f)
+        return prefs if isinstance(prefs, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_prefs(prefs):
+    try:
+        os.makedirs(os.path.dirname(PREFS), exist_ok=True)
+        with open(PREFS, "w") as f:
+            json.dump(prefs, f)
+    except OSError:
+        pass
+
+
+def gnome_interface_settings():
+    src = Gio.SettingsSchemaSource.get_default()
+    schema = src.lookup("org.gnome.desktop.interface", True) if src else None
+    if schema and schema.has_key("color-scheme"):
+        return Gio.Settings.new("org.gnome.desktop.interface")
+    return None
+
+
+def system_prefers_dark(iface):
+    scheme = iface.get_string("color-scheme") if iface else "default"
+    if scheme in ("prefer-dark", "prefer-light"):
+        return scheme == "prefer-dark"
+    name = Gtk.Settings.get_default().get_property("gtk-theme-name") or ""
+    return "dark" in name.lower()
+
+
 _POINTER = {}
 
 
@@ -509,6 +544,47 @@ def _draw_pulse(cr):
     cr.stroke()
 
 
+def _draw_sun(cr):
+    cr.arc(12, 12, 3.5, 0, 2 * math.pi)
+    cr.stroke()
+    for i in range(8):
+        a = i * math.pi / 4
+        cr.move_to(12 + 6.5 * math.cos(a), 12 + 6.5 * math.sin(a))
+        cr.line_to(12 + 8.5 * math.cos(a), 12 + 8.5 * math.sin(a))
+    cr.stroke()
+
+
+def _draw_moon(cr):
+    # Crescent: circle (12,12) r=8 minus circle (16,8) r=6.5; angles meet at their intersections.
+    cr.new_path()
+    cr.arc(12, 12, 8, 0.149, 4.563)
+    cr.arc_negative(16, 8, 6.5, 3.787, 0.925)
+    cr.close_path()
+    cr.stroke()
+
+
+def _draw_auto(cr):
+    cr.arc(12, 12, 8, 0, 2 * math.pi)
+    cr.stroke()
+    cr.arc(12, 12, 8, -math.pi / 2, math.pi / 2)
+    cr.close_path()
+    cr.fill()
+
+
+def _draw_corners(cr, inward):
+    for sx, sy in ((1, 1), (-1, 1), (-1, -1), (1, -1)):
+        x, y = 12 - sx * 8, 12 - sy * 8
+        if inward:
+            cr.move_to(x + sx * 5, y)
+            cr.line_to(x + sx * 5, y + sy * 5)
+            cr.line_to(x, y + sy * 5)
+        else:
+            cr.move_to(x, y + sy * 5)
+            cr.line_to(x, y)
+            cr.line_to(x + sx * 5, y)
+    cr.stroke()
+
+
 _ICON_DRAW = {
     "mic": _draw_mic,
     "filter": _draw_filter,
@@ -516,6 +592,11 @@ _ICON_DRAW = {
     "headset": lambda cr: _draw_headset(cr, False),
     "logo": _draw_logo,
     "pulse": _draw_pulse,
+    "sun": _draw_sun,
+    "moon": _draw_moon,
+    "auto": _draw_auto,
+    "fullscreen": lambda cr: _draw_corners(cr, False),
+    "unfullscreen": lambda cr: _draw_corners(cr, True),
 }
 
 
@@ -529,14 +610,20 @@ class VectorIcon(Gtk.DrawingArea):
         self.set_halign(Gtk.Align.CENTER)
         self.connect("draw", self._on_draw)
 
+    def set_kind(self, kind):
+        self.kind = kind
+        self.queue_draw()
+
     def _fg(self):
         if self._color:
             return self._color
         w = self
         while w:
-            if isinstance(w, Gtk.ToggleButton):
+            if w.get_style_context().has_class("header-icon"):
+                return theme.rgb("text")
+            if isinstance(w, Gtk.Button):
                 flags = w.get_state_flags()
-                if w.get_active():
+                if isinstance(w, Gtk.ToggleButton) and w.get_active():
                     return theme.rgb("accent")
                 if flags & Gtk.StateFlags.PRELIGHT:
                     return theme.rgb("text")
@@ -721,6 +808,9 @@ PAGES = [("mic", "Microphone", "mic"),
          ("devices", "Devices & Bluetooth", "bluetooth"),
          ("wired", "Wired & power", "headset"),
          ("diag", "Diagnostics", "pulse")]
+THEME_MODES = {"system": ("Match system", "auto"),
+               "light": ("Light", "sun"),
+               "dark": ("Dark", "moon")}
 
 
 class BeatsWindow(Gtk.ApplicationWindow):
@@ -736,20 +826,43 @@ class BeatsWindow(Gtk.ApplicationWindow):
         self._rn_busy = find_rnnoise() is None
         self.meter = Meter(self.on_level)
 
-        Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
-        prov = Gtk.CssProvider()
-        prov.load_from_data(theme.stylesheet().encode())
+        self.prefs = load_prefs()
+        self.theme_mode = self.prefs.get("theme", "system")
+        if self.theme_mode not in THEME_MODES:
+            self.theme_mode = "system"
+        self._fullscreen = False
+        self.columns = []
+        self._iface = gnome_interface_settings()
+        if self._iface:
+            self._iface.connect("changed::color-scheme", lambda *_: self.apply_theme())
+        Gtk.Settings.get_default().connect("notify::gtk-theme-name", lambda *_: self.apply_theme())
+        self.css = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            Gdk.Screen.get_default(), self.css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.apply_theme()
 
-        hb = Gtk.HeaderBar()
-        hb.set_show_close_button(True)
-        hb.set_title(APP)
-        self.set_titlebar(hb)
+        fs = Gio.SimpleAction.new("fullscreen", None)
+        fs.connect("activate", lambda *_: self.set_fullscreen(not self._fullscreen))
+        self.add_action(fs)
+        application.set_accels_for_action("win.fullscreen", ["F11"])
+        self.connect("window-state-event", self.on_window_state)
+        self.connect("key-press-event", self.on_key)
 
+        self.fs_buttons = []
+        self.set_titlebar(self.header_bar())
+        # GTK 3 hides the titlebar while fullscreen, so an in-window copy stands in for it.
+        self.fs_header = self.header_bar()
+        self.fs_header.set_decoration_layout(":close")
+        self.fs_header.show_all()
+        self.fs_header.set_no_show_all(True)
+        self.fs_header.hide()
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        outer.pack_start(self.fs_header, False, False, 0)
+        self.add(outer)
         root = Gtk.Box()
         root.get_style_context().add_class("app")
-        self.add(root)
+        outer.pack_start(root, True, True, 0)
 
         side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         side.get_style_context().add_class("sidebar")
@@ -760,7 +873,7 @@ class BeatsWindow(Gtk.ApplicationWindow):
         brand_row = Gtk.Box(spacing=10)
         brand_row.set_margin_start(10)
         brand_row.set_margin_bottom(SPACE["md"])
-        brand_row.pack_start(VectorIcon("logo", SIZE["icon"], color=theme.rgb("text")), False, False, 0)
+        brand_row.pack_start(VectorIcon("logo", SIZE["icon"]), False, False, 0)
         brand_row.pack_start(lbl("Beats", "brand", wrap=False), False, False, 0)
         side.pack_start(brand_row, False, False, 0)
         self.stack = Gtk.Stack()
@@ -783,6 +896,8 @@ class BeatsWindow(Gtk.ApplicationWindow):
             rb.connect("leave-notify-event", lambda *_a, g=glyph: (g.queue_draw(), False)[1])
             make_clickable(rb)
             side.pack_start(rb, False, False, 0)
+        side.set_margin_bottom(SPACE["md"] - SPACE["xs"])
+        side.pack_end(self.view_controls(), False, False, 0)
         root.pack_start(side, False, False, 0)
 
         col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -809,6 +924,83 @@ class BeatsWindow(Gtk.ApplicationWindow):
         self.prepare_rnnoise()
         self.say("Ready. Plug or unplug a headset - the list updates automatically.")
 
+    def view_controls(self):
+        bar = Gtk.Box(spacing=2)
+        first = None
+        for key, (tip, icon) in THEME_MODES.items():
+            rb = Gtk.RadioButton.new_from_widget(first) if first is not None else Gtk.RadioButton()
+            if first is None:
+                first = rb
+            rb.set_mode(False)
+            rb.get_style_context().add_class("nav")
+            rb.get_style_context().add_class("icon")
+            rb.set_tooltip_text(tip)
+            rb.add(VectorIcon(icon, SIZE["icon"]))
+            rb.set_active(key == self.theme_mode)
+            rb.connect("toggled", self.on_theme_mode, key)
+            rb.connect("enter-notify-event", lambda w, _e: (w.get_child().queue_draw(), False)[1])
+            rb.connect("leave-notify-event", lambda w, _e: (w.get_child().queue_draw(), False)[1])
+            rb.connect("toggled", lambda w: w.get_child().queue_draw())
+            bar.pack_start(make_clickable(rb), False, False, 0)
+        return bar
+
+    def header_bar(self):
+        hb = Gtk.HeaderBar()
+        hb.set_show_close_button(True)
+        hb.set_title(APP)
+        icon = VectorIcon("fullscreen", 16)
+        btn = Gtk.Button()
+        btn.get_style_context().add_class("header-icon")
+        btn.set_tooltip_text("Fullscreen (F11)")
+        btn.set_action_name("win.fullscreen")
+        btn.add(icon)
+        btn.connect("enter-notify-event", lambda *_a: (icon.queue_draw(), False)[1])
+        btn.connect("leave-notify-event", lambda *_a: (icon.queue_draw(), False)[1])
+        hb.pack_end(make_clickable(btn))
+        self.fs_buttons.append((btn, icon))
+        return hb
+
+    def apply_theme(self):
+        if self.theme_mode == "system":
+            dark = system_prefers_dark(self._iface)
+        else:
+            dark = self.theme_mode == "dark"
+        theme.use("dark" if dark else "light")
+        Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", dark)
+        self.css.load_from_data(theme.stylesheet().encode())
+        self.set_icon(render_app_icon(64))
+        self.queue_draw()
+
+    def on_theme_mode(self, btn, key):
+        if not btn.get_active() or key == self.theme_mode:
+            return
+        self.theme_mode = key
+        self.prefs["theme"] = key
+        save_prefs(self.prefs)
+        self.apply_theme()
+
+    def set_fullscreen(self, on):
+        if on != self._fullscreen:
+            (self.fullscreen if on else self.unfullscreen)()
+
+    def on_window_state(self, _w, event):
+        self._fullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
+        for btn, icon in self.fs_buttons:
+            icon.set_kind("unfullscreen" if self._fullscreen else "fullscreen")
+            btn.set_tooltip_text(
+                "Leave fullscreen (F11 or Esc)" if self._fullscreen else "Fullscreen (F11)")
+        self.fs_header.set_visible(self._fullscreen)
+        align = Gtk.Align.FILL if self._fullscreen else Gtk.Align.START
+        for col in self.columns:
+            col.set_halign(align)
+        return False
+
+    def on_key(self, _w, event):
+        if self._fullscreen and event.keyval == Gdk.KEY_Escape:
+            self.unfullscreen()
+            return True
+        return False
+
     def add_page(self, key, content):
         sw = Gtk.ScrolledWindow()
         sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -817,6 +1009,7 @@ class BeatsWindow(Gtk.ApplicationWindow):
 
     def page(self, title, subtitle=None):
         box = Column(SIZE["content"])
+        self.columns.append(box)
         box.set_margin_start(SPACE["page_x"])
         box.set_margin_end(SPACE["page_x"])
         box.set_margin_top(SPACE["page_y"])
