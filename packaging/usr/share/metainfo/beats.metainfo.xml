@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.beats.Beats</id>
+  <name>Beats</name>
+  <summary>Fix noisy headphone and earbud microphones</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <launchable type="desktop-id">beats.desktop</launchable>
+  <developer_name>Beats</developer_name>
+  <description>
+    <p>
+      Pick the right microphone and port, watch a live level meter, tune gain
+      and hardware Mic Boost, and add a noise filter. Strong uses WebRTC.
+      Maximum uses RNNoise and is installed with the app. Also fixes Bluetooth
+      headset profile issues and audio power-save clicks.
+    </p>
+  </description>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>Utility</category>
+  </categories>
+  <provides>
+    <binary>beats</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+</component>

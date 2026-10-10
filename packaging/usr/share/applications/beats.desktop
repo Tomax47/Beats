@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Beats
+GenericName=Microphone tuner
+Comment=Fix noisy headphone and earbud microphones
+Exec=/usr/bin/beats
+Icon=beats
+Terminal=false
+StartupNotify=true
+StartupWMClass=Beats
+Categories=AudioVideo;Audio;Settings;Utility;GTK;
+Keywords=beats;microphone;headset;headphone;earbuds;bluetooth;noise;audio;pipewire;wireplumber;
+DBusActivatable=false
+X-GNOME-UsesNotifications=false

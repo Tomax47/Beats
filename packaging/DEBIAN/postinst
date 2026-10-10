@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+if [ "$1" = "configure" ]; then
+    PLUGIN_SRC="/usr/share/beats/ladspa/librnnoise_ladspa.so"
+    if [ -f "$PLUGIN_SRC" ]; then
+        mkdir -p /usr/lib/ladspa
+        if [ ! -e /usr/lib/ladspa/librnnoise_ladspa.so ]; then
+            ln -sf "$PLUGIN_SRC" /usr/lib/ladspa/librnnoise_ladspa.so
+        fi
+    fi
+    command -v update-desktop-database >/dev/null 2>&1 \
+        && update-desktop-database -q /usr/share/applications || true
+    if [ -f /usr/share/icons/hicolor/index.theme ]; then
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+        fi
+    fi
+    command -v xdg-desktop-menu >/dev/null 2>&1 \
+        && xdg-desktop-menu forceupdate || true
+    command -v update-menus >/dev/null 2>&1 && update-menus || true
+fi
+exit 0

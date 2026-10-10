@@ -1,0 +1,17 @@
+Package: beats
+Version: 1.4.0
+Section: sound
+Priority: optional
+Architecture: amd64
+Depends: python3, python3-gi, python3-gi-cairo, python3-cairo, gir1.2-gtk-3.0, gir1.2-gdkpixbuf-2.0, librsvg2-common, hicolor-icon-theme, desktop-file-utils, pipewire, pipewire-pulse, pipewire-bin, wireplumber, libpipewire-0.3-modules, libspa-0.2-modules, libspa-0.2-bluetooth, pulseaudio-utils, alsa-utils, pkexec | policykit-1, ca-certificates
+Recommends: bluez
+Replaces: headset-mic-fixer
+Conflicts: headset-mic-fixer
+Provides: headset-mic-fixer
+Maintainer: You <you@example.com>
+Description: Fix noisy headset and earbud microphones on PipeWire
+ Beats is a dark GTK tool to pick the right mic/port, see a live level
+ meter, tune gain and hardware Mic Boost, add a noise filter (light,
+ WebRTC "Strong", or RNNoise "Maximum"), fix Bluetooth headset profile
+ problems (mSBC, auto-switching) and stop audio power-save clicks.
+ Installed system-wide with a menu launcher. Maximum mode is bundled.

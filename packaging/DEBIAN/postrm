@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    if [ -L /usr/lib/ladspa/librnnoise_ladspa.so ]; then
+        target=$(readlink -f /usr/lib/ladspa/librnnoise_ladspa.so 2>/dev/null || true)
+        case "$target" in
+            /usr/share/beats/*|/usr/share/headset-mic-fixer/*)
+                rm -f /usr/lib/ladspa/librnnoise_ladspa.so
+                ;;
+        esac
+    fi
+    command -v update-desktop-database >/dev/null 2>&1 \
+        && update-desktop-database -q /usr/share/applications || true
+    if [ -f /usr/share/icons/hicolor/index.theme ]; then
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+        fi
+    fi
+    command -v xdg-desktop-menu >/dev/null 2>&1 \
+        && xdg-desktop-menu forceupdate || true
+    command -v update-menus >/dev/null 2>&1 && update-menus || true
+fi
+exit 0
