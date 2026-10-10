@@ -13,10 +13,6 @@ before the interesting parts work.
   <img src="docs/screenshot.png" width="760" alt="Beats Microphone page: device and port pickers, volume, mute, live level meter, and quick fixes">
 </p>
 
-The mark above is not a stock icon. `src/beats_logo.py` draws five bars
-whose heights are a downbeat — a pulse — and writes the SVG used for the
-launcher, the window icon, and the sidebar.
-
 ## What it is for
 
 On Linux, a headset mic fails in boring, specific ways:
@@ -47,14 +43,19 @@ title bar stays up while fullscreen.
 
 ## Install (as a user)
 
-You want the `.deb`, not a Python venv.
+Install the `.deb` from the
+[releases page](https://github.com/Tomax47/Beats/releases). That file is
+the app; cloning this repository is for development, further down.
 
-1. Get `beats_1.4.0_amd64.deb`. From this tree that is `./build-deb.sh`,
-   which writes `dist/beats_1.4.0_amd64.deb`. A release upload is the
-   same file.
-2. Install it the ordinary way:
+The published package is **amd64** (64-bit Intel and AMD). arm64 and i386
+are not in the release.
 
-       sudo apt install ./dist/beats_1.4.0_amd64.deb
+1. Open the [latest release](https://github.com/Tomax47/Beats/releases/latest)
+   and download `beats_<version>_amd64.deb`. For 1.4.0 that file is
+   `beats_1.4.0_amd64.deb`.
+2. In the folder that contains the download:
+
+       sudo apt install ./beats_1.4.0_amd64.deb
 
    Apt pulls in GTK, PipeWire, and the rest. You should not have to
    `apt install` anything else for Beats itself to open.
@@ -76,15 +77,31 @@ Then: `systemctl --user restart pipewire pipewire-pulse wireplumber`
 
 Remove the app with `sudo apt remove beats`.
 
-## Run from source
+## Fork and run in development
+
+Fork [Tomax47/Beats](https://github.com/Tomax47/Beats), then clone your
+fork and work in that tree:
+
+    git clone git@github.com:YOUR_USER/Beats.git
+    cd Beats
+
+Install the libraries the window needs, then start it from this checkout:
 
     sudo apt install python3-gi python3-gi-cairo python3-cairo gir1.2-gtk-3.0 \
         pipewire-bin pulseaudio-utils alsa-utils
     ./run.sh
 
+`./run.sh` runs `src/headset_mic_fixer.py` with the system Python, from
+this checkout. The applications-menu entry comes from the package:
+`./build-deb.sh`, then `sudo apt install ./dist/beats_<version>_amd64.deb`.
+
 Regenerate the launcher SVG after touching the mark:
 
     python3 tools/gen_logo.py
+
+Push the branch to your fork and open a pull request against
+[Tomax47/Beats](https://github.com/Tomax47/Beats). What is worth sending is
+under Contributing.
 
 ## Layout
 
@@ -112,7 +129,8 @@ I care most about:
 - filters that fail on a particular PipeWire version
 - desktop environments where the Beats icon does not launch the window
 
-Fork it, break it on your machine, send back what you learned.
+Break it on your machine, then send back what you learned. The fork and
+`./run.sh` steps are in Fork and run in development.
 
 ## License
 
